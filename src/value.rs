@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum FieldValue {
-    VarInt(i64),
+    VarInt(u64),
     Bytes(Vec<u8>),
 }
 
