@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use bytes::BytesMut;
+use octets::{Octets, OctetsMut};
 
-use crate::{Error, Field, FieldName, FieldValue};
+use crate::{Error, Field, FieldName, FieldValue, FieldValueInfo};
 
 pub struct Block<F>
 where
@@ -29,10 +29,15 @@ where
         Arc::new(self)
     }
 
-    pub fn to_bytes(
+    pub fn to_bytes(&self, values: &HashMap<F, FieldValue>, b: &mut [u8]) -> Result<(), Error<F>> {
+        let mut b = OctetsMut::with_slice(b);
+        return self.to_bytes_(values, &mut b);
+    }
+
+    fn to_bytes_(
         &self,
         values: &HashMap<F, FieldValue>,
-        b: &mut BytesMut,
+        b: &mut OctetsMut,
     ) -> Result<(), Error<F>> {
         for field in self.fields.iter() {
             field.to_bytes(values, b)?;
@@ -42,8 +47,17 @@ where
 
     pub fn to_values(
         &self,
-        b: &mut BytesMut,
-        values: &mut HashMap<F, FieldValue>,
+        b: &[u8],
+        values: &mut HashMap<F, FieldValueInfo>,
+    ) -> Result<(), Error<F>> {
+        let mut b = Octets::with_slice(b);
+        return self.to_values_(&mut b, values);
+    }
+
+    fn to_values_(
+        &self,
+        b: &mut Octets,
+        values: &mut HashMap<F, FieldValueInfo>,
     ) -> Result<(), Error<F>> {
         for field in self.fields.iter() {
             field.to_values(b, values)?;

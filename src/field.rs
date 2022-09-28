@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use bytes::{Buf, BufMut, BytesMut};
+use octets::{Octets, OctetsMut};
 
-use crate::{Error, FieldName, FieldValue};
+use crate::{Error, FieldName, FieldValue, FieldValueInfo};
 
 pub struct Field<F>
 where
@@ -31,22 +31,9 @@ where
     pub fn to_bytes(
         &self,
         values: &HashMap<F, FieldValue>,
-        b: &mut BytesMut,
+        b: &mut OctetsMut,
     ) -> Result<(), Error<F>> {
         match self.definition() {
-            FieldDefinition::I32(x) => match x {
-                Some(x) => {
-                    b.put_i32(*x);
-                }
-                None => match values.get(self.name()) {
-                    Some(FieldValue::I32(x)) => {
-                        b.put_i32(*x);
-                    }
-                    _ => {
-                        return Err(Error::NoValueProvided(self.name().clone()));
-                    }
-                },
-            },
             FieldDefinition::VarInt(_x) => {
                 return Err(Error::NotImpl(self.name().clone()));
             }
@@ -57,7 +44,9 @@ where
                             if x.len() != *len {
                                 return Err(Error::InvalidValue(self.name().clone()));
                             }
-                            b.put_slice(x);
+                            if let Err(_) = b.put_bytes(x) {
+                                return Err(Error::NotEnoughSpace(self.name().clone()));
+                            };
                         }
                         _ => {
                             return Err(Error::NoValueProvided(self.name().clone()));
@@ -67,9 +56,13 @@ where
                         match values.get(self.name()) {
                             Some(FieldValue::Bytes(x)) => {
                                 // length prefix
-                                b.put_u32(x.len() as u32);
+                                if let Err(_) = b.put_varint(x.len() as u64) {
+                                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                                };
                                 // data
-                                b.put_slice(x);
+                                if let Err(_) = b.put_bytes(x) {
+                                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                                };
                             }
                             _ => {
                                 return Err(Error::NoValueProvided(self.name().clone()));
@@ -91,7 +84,9 @@ where
                         }
                     }
                 }
-                b.put_slice(x);
+                if let Err(_) = b.put_bytes(x) {
+                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                };
             }
         }
         Ok(())
@@ -99,40 +94,39 @@ where
 
     pub fn to_values(
         &self,
-        b: &mut BytesMut,
-        values: &mut HashMap<F, FieldValue>,
+        b: &mut Octets,
+        values: &mut HashMap<F, FieldValueInfo>,
     ) -> Result<(), Error<F>> {
+        let pos = b.off();
+
         match self.definition() {
-            FieldDefinition::I32(x) => match x {
-                Some(x) => {
-                    if *x != b.get_i32() {
-                        return Err(Error::InvalidValue(self.name().clone()));
-                    }
-                }
-                None => {
-                    values.insert(self.name().clone(), FieldValue::I32(b.get_i32()));
-                }
-            },
             FieldDefinition::VarInt(_x) => {
                 return Err(Error::NotImpl(self.name().clone()));
             }
             FieldDefinition::Bytes(len) => match len {
                 FieldLen::Fixed(len) => {
-                    let mut x = vec![0; *len];
-                    b.copy_to_slice(&mut x);
-                    values.insert(self.name().clone(), FieldValue::Bytes(x));
+                    let x = match b.get_bytes(*len) {
+                        Ok(x) => x,
+                        Err(_) => return Err(Error::InvalidValue(self.name().clone())),
+                    };
+                    let value = FieldValue::Bytes(x.to_vec());
+                    values.insert(self.name().clone(), FieldValueInfo { value, pos });
                 }
                 FieldLen::Var => {
-                    let len = b.get_u32() as usize;
-                    let mut x = vec![0; len];
-                    b.copy_to_slice(&mut x);
-                    values.insert(self.name().clone(), FieldValue::Bytes(x));
+                    let x = match b.get_bytes_with_varint_length() {
+                        Ok(x) => x,
+                        Err(_) => return Err(Error::InvalidValue(self.name().clone())),
+                    };
+                    let value = FieldValue::Bytes(x.to_vec());
+                    values.insert(self.name().clone(), FieldValueInfo { value, pos });
                 }
             },
             FieldDefinition::FixedBytes(x) => {
-                let mut y = vec![0; x.len()];
-                b.copy_to_slice(&mut y);
-                if y != *x {
+                let y = match b.get_bytes(x.len()) {
+                    Ok(y) => y,
+                    Err(_) => return Err(Error::InvalidValue(self.name().clone())),
+                };
+                if y.buf() != x {
                     return Err(Error::InvalidValue(self.name().clone()));
                 }
             }
@@ -142,7 +136,6 @@ where
 }
 
 pub enum FieldDefinition {
-    I32(Option<i32>),
     VarInt(Option<i64>),
     Bytes(FieldLen),
     FixedBytes(Vec<u8>),
