@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use octets::{Octets, OctetsMut};
 
@@ -23,10 +23,6 @@ where
 
     pub fn add_field(&mut self, field: Field<F>) {
         self.fields.push(field);
-    }
-
-    pub fn into_arc(self) -> Arc<Block<F>> {
-        Arc::new(self)
     }
 
     pub fn to_bytes(&self, values: &HashMap<F, FieldValue>, b: &mut [u8]) -> Result<(), Error<F>> {

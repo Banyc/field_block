@@ -23,7 +23,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, sync::Arc};
+    use std::collections::HashMap;
 
     use super::*;
 
@@ -140,7 +140,7 @@ mod tests {
         }
     }
 
-    fn get_block() -> Arc<Block<TestName>> {
+    fn get_block() -> Block<TestName> {
         let mut block = Block::new();
         block.add_field(Field::new(
             TestName::FixedVarInt,
@@ -159,7 +159,7 @@ mod tests {
             TestName::FixedBytes,
             FieldDefinition::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
         ));
-        block.into_arc()
+        block
     }
 
     #[derive(Debug, PartialEq, Eq, Hash, Clone)]
