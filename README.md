@@ -9,21 +9,26 @@ A buffer field definition:
 ```rust
 fn get_block() -> Block<Name> {
     let mut block = Block::new();
-    block.add_field(Field::new(
-        Name::FixedVarInt, FieldDef::VarInt(Some(0xdeadbeef)),
-    ));
-    block.add_field(Field::new( //
-        Name::VarInt, FieldDef::VarInt(None),
-    ));
-    block.add_field(Field::new(
-        Name::BytesFixedLen, FieldDef::Bytes(FieldLen::Fixed(1)),
-    ));
-    block.add_field(Field::new(
-        Name::BytesVarLen, FieldDef::Bytes(FieldLen::Var),
-    ));
-    block.add_field(Field::new(
-        Name::FixedBytes, FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
-    ));
+    block.add_field(
+        Name::FixedVarInt, //
+        FieldDef::VarInt(Some(0xdeadbeef)),
+    );
+    block.add_field(
+        Name::VarInt, //
+        FieldDef::VarInt(None),
+    );
+    block.add_field(
+        Name::BytesFixedLen, //
+        FieldDef::Bytes(FieldLen::Fixed(1)),
+    );
+    block.add_field(
+        Name::BytesVarLen, //
+        FieldDef::Bytes(FieldLen::Var),
+    );
+    block.add_field(
+        Name::FixedBytes, //
+        FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
+    );
     block
 }
 

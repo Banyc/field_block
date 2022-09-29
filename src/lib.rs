@@ -32,9 +32,9 @@ mod tests {
         let block = get_block();
 
         let mut values = HashMap::new();
-        values.insert(TestName::VarInt, FieldValue::VarInt(0x1234));
-        values.insert(TestName::BytesFixedLen, FieldValue::Bytes(vec![1]));
-        values.insert(TestName::BytesVarLen, FieldValue::Bytes(vec![1, 2, 3]));
+        values.insert(Name::VarInt, FieldValue::VarInt(0x1234));
+        values.insert(Name::BytesFixedLen, FieldValue::Bytes(vec![1]));
+        values.insert(Name::BytesVarLen, FieldValue::Bytes(vec![1, 2, 3]));
 
         let mut vec = vec![0; 1024];
 
@@ -110,7 +110,7 @@ mod tests {
 
         assert_eq!(end, vec.len());
 
-        match values.get(&TestName::VarInt) {
+        match values.get(&Name::VarInt) {
             Some(FieldValueInfo {
                 value: FieldValue::VarInt(x),
                 pos,
@@ -120,7 +120,7 @@ mod tests {
             }
             _ => panic!(),
         };
-        match values.get(&TestName::BytesFixedLen) {
+        match values.get(&Name::BytesFixedLen) {
             Some(FieldValueInfo {
                 value: FieldValue::Bytes(x),
                 pos,
@@ -132,7 +132,7 @@ mod tests {
                 panic!();
             }
         }
-        match values.get(&TestName::BytesVarLen) {
+        match values.get(&Name::BytesVarLen) {
             Some(FieldValueInfo {
                 value: FieldValue::Bytes(x),
                 pos,
@@ -146,30 +146,21 @@ mod tests {
         }
     }
 
-    fn get_block() -> Block<TestName> {
+    fn get_block() -> Block<Name> {
         let mut block = Block::new();
-        block.add_field(Field::new(
-            TestName::FixedVarInt,
-            FieldDef::VarInt(Some(0xdeadbeef)),
-        ));
-        block.add_field(Field::new(TestName::VarInt, FieldDef::VarInt(None)));
-        block.add_field(Field::new(
-            TestName::BytesFixedLen,
-            FieldDef::Bytes(FieldLen::Fixed(1)),
-        ));
-        block.add_field(Field::new(
-            TestName::BytesVarLen,
-            FieldDef::Bytes(FieldLen::Var),
-        ));
-        block.add_field(Field::new(
-            TestName::FixedBytes,
+        block.add_field(Name::FixedVarInt, FieldDef::VarInt(Some(0xdeadbeef)));
+        block.add_field(Name::VarInt, FieldDef::VarInt(None));
+        block.add_field(Name::BytesFixedLen, FieldDef::Bytes(FieldLen::Fixed(1)));
+        block.add_field(Name::BytesVarLen, FieldDef::Bytes(FieldLen::Var));
+        block.add_field(
+            Name::FixedBytes,
             FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
-        ));
+        );
         block
     }
 
     #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-    enum TestName {
+    enum Name {
         FixedVarInt,
         VarInt,
         BytesFixedLen,
@@ -177,5 +168,5 @@ mod tests {
         FixedBytes,
     }
 
-    impl FieldName for TestName {}
+    impl FieldName for Name {}
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use octets::{Octets, OctetsMut};
 
-use crate::{Error, Field, FieldName, FieldValue, FieldValueInfo};
+use crate::{Error, Field, FieldDef, FieldName, FieldValue, FieldValueInfo};
 
 pub struct Block<F>
 where
@@ -24,8 +24,8 @@ where
         self_
     }
 
-    pub fn add_field(&mut self, field: Field<F>) {
-        self.fields.push(field);
+    pub fn add_field(&mut self, name: F, field_def: FieldDef) {
+        self.fields.push(Field::new(name, field_def));
         self.check_rep();
     }
 
