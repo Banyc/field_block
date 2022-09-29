@@ -11,23 +11,23 @@ fn get_block() -> Block<Name> {
     let mut block = Block::new();
     block.add_field(
         Name::FixedVarInt, //
-        FieldDef::VarInt(Some(0xdeadbeef)),
+        Def::VarInt(Some(0xdeadbeef)),
     );
     block.add_field(
         Name::VarInt, //
-        FieldDef::VarInt(None),
+        Def::VarInt(None),
     );
     block.add_field(
         Name::BytesFixedLen, //
-        FieldDef::Bytes(FieldLen::Fixed(1)),
+        Def::Bytes(FieldLen::Fixed(1)),
     );
     block.add_field(
         Name::BytesVarLen, //
-        FieldDef::Bytes(FieldLen::Var),
+        Def::Bytes(FieldLen::Var),
     );
     block.add_field(
         Name::FixedBytes, //
-        FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
+        Def::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
     );
     block
 }
@@ -52,15 +52,15 @@ let block = get_block();
 let mut values = HashMap::new();
 values.insert(
     Name::VarInt, //
-    FieldValue::VarInt(0x1234)
+    Val::VarInt(0x1234)
 );
 values.insert(
     Name::BytesFixedLen, //
-    FieldValue::Bytes(Cow::from(vec![1]))
+    Val::Bytes(Cow::from(vec![1]))
 );
 values.insert(
     Name::BytesVarLen, //
-    FieldValue::Bytes(Cow::from(vec![1, 2, 3])),
+    Val::Bytes(Cow::from(vec![1, 2, 3])),
 );
 
 let mut vec = vec![0; 1024];
@@ -79,7 +79,7 @@ let mut values = HashMap::new();
 
 let end = block.to_values(&vec, &mut values).unwrap();
 
-let FieldValueInfo { value, pos } = values.get(&Name::VarInt).unwrap();
+let ValInfo { value, pos } = values.get(&Name::VarInt).unwrap();
 let value = value.varint().unwrap();
 
 println!("Field VarInt has a value {} at pos {}", value, pos);

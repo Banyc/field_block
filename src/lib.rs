@@ -32,12 +32,9 @@ mod tests {
         let block = get_block();
 
         let mut values = HashMap::new();
-        values.insert(Name::VarInt, FieldValue::VarInt(0x1234));
-        values.insert(Name::BytesFixedLen, FieldValue::Bytes(Cow::from(vec![1])));
-        values.insert(
-            Name::BytesVarLen,
-            FieldValue::Bytes(Cow::from(vec![1, 2, 3])),
-        );
+        values.insert(Name::VarInt, Val::VarInt(0x1234));
+        values.insert(Name::BytesFixedLen, Val::Bytes(Cow::from(vec![1])));
+        values.insert(Name::BytesVarLen, Val::Bytes(Cow::from(vec![1, 2, 3])));
 
         let mut vec = vec![0; 1024];
 
@@ -113,51 +110,28 @@ mod tests {
 
         assert_eq!(end, vec.len());
 
-        match values.get(&Name::VarInt) {
-            Some(FieldValueInfo {
-                value: FieldValue::VarInt(x),
-                pos,
-            }) => {
-                assert_eq!(*x, 0x1234);
-                assert_eq!(*pos, 8);
-            }
-            _ => panic!(),
-        };
-        match values.get(&Name::BytesFixedLen) {
-            Some(FieldValueInfo {
-                value: FieldValue::Bytes(x),
-                pos,
-            }) => {
-                assert_eq!(*x, vec![1]);
-                assert_eq!(*pos, 10);
-            }
-            _ => {
-                panic!();
-            }
-        }
-        match values.get(&Name::BytesVarLen) {
-            Some(FieldValueInfo {
-                value: FieldValue::Bytes(x),
-                pos,
-            }) => {
-                assert_eq!(*x, vec![1, 2, 3]);
-                assert_eq!(*pos, 11);
-            }
-            _ => {
-                panic!();
-            }
-        }
+        let ValInfo { value, pos } = values.get(&Name::VarInt).unwrap();
+        assert_eq!(value.varint().unwrap(), 0x1234);
+        assert_eq!(*pos, 8);
+
+        let ValInfo { value, pos } = values.get(&Name::BytesFixedLen).unwrap();
+        assert_eq!(value.bytes().unwrap(), vec![1]);
+        assert_eq!(*pos, 10);
+
+        let ValInfo { value, pos } = values.get(&Name::BytesVarLen).unwrap();
+        assert_eq!(value.bytes().unwrap(), vec![1, 2, 3]);
+        assert_eq!(*pos, 11);
     }
 
     fn get_block() -> Block<Name> {
         let mut block = Block::new();
-        block.add_field(Name::FixedVarInt, FieldDef::VarInt(Some(0xdeadbeef)));
-        block.add_field(Name::VarInt, FieldDef::VarInt(None));
-        block.add_field(Name::BytesFixedLen, FieldDef::Bytes(FieldLen::Fixed(1)));
-        block.add_field(Name::BytesVarLen, FieldDef::Bytes(FieldLen::Var));
+        block.add_field(Name::FixedVarInt, Def::VarInt(Some(0xdeadbeef)));
+        block.add_field(Name::VarInt, Def::VarInt(None));
+        block.add_field(Name::BytesFixedLen, Def::Bytes(Len::Fixed(1)));
+        block.add_field(Name::BytesVarLen, Def::Bytes(Len::Var));
         block.add_field(
             Name::FixedBytes,
-            FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
+            Def::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
         );
         block
     }

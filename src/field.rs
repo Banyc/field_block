@@ -2,21 +2,21 @@ use std::{borrow::Cow, collections::HashMap};
 
 use octets::{Octets, OctetsMut};
 
-use crate::{Error, FieldName, FieldValue, FieldValueInfo};
+use crate::{Error, FieldName, Val, ValInfo};
 
 pub struct Field<F>
 where
     F: FieldName,
 {
     name: F,
-    def: FieldDef,
+    def: Def,
 }
 
 impl<F> Field<F>
 where
     F: FieldName,
 {
-    pub fn new(name: F, def: FieldDef) -> Self {
+    pub fn new(name: F, def: Def) -> Self {
         Field { name, def }
     }
 
@@ -24,20 +24,16 @@ where
         &self.name
     }
 
-    pub fn def(&self) -> &FieldDef {
+    pub fn def(&self) -> &Def {
         &self.def
     }
 
-    pub fn to_bytes(
-        &self,
-        values: &HashMap<F, FieldValue>,
-        b: &mut OctetsMut,
-    ) -> Result<(), Error<F>> {
+    pub fn to_bytes(&self, values: &HashMap<F, Val>, b: &mut OctetsMut) -> Result<(), Error<F>> {
         match self.def() {
-            FieldDef::VarInt(x) => {
+            Def::VarInt(x) => {
                 let y = values.get(self.name());
                 match (x, y) {
-                    (Some(x), Some(FieldValue::VarInt(y))) => {
+                    (Some(x), Some(Val::VarInt(y))) => {
                         if *y != *x {
                             return Err(Error::InvalidValue(self.name().clone()));
                         }
@@ -45,7 +41,7 @@ where
                             return Err(Error::NotEnoughSpace(self.name().clone()));
                         };
                     }
-                    (None, Some(FieldValue::VarInt(y))) => {
+                    (None, Some(Val::VarInt(y))) => {
                         if let Err(_) = b.put_varint(*y) {
                             return Err(Error::NotEnoughSpace(self.name().clone()));
                         };
@@ -63,10 +59,10 @@ where
                     }
                 };
             }
-            FieldDef::Bytes(len) => {
+            Def::Bytes(len) => {
                 match len {
-                    FieldLen::Fixed(len) => match values.get(self.name()) {
-                        Some(FieldValue::Bytes(x)) => {
+                    Len::Fixed(len) => match values.get(self.name()) {
+                        Some(Val::Bytes(x)) => {
                             if x.len() != *len {
                                 return Err(Error::InvalidValue(self.name().clone()));
                             }
@@ -78,9 +74,9 @@ where
                             return Err(Error::NoValueProvided(self.name().clone()));
                         }
                     },
-                    FieldLen::Var => {
+                    Len::Var => {
                         match values.get(self.name()) {
-                            Some(FieldValue::Bytes(x)) => {
+                            Some(Val::Bytes(x)) => {
                                 // length prefix
                                 if let Err(_) = b.put_varint(x.len() as u64) {
                                     return Err(Error::NotEnoughSpace(self.name().clone()));
@@ -97,10 +93,10 @@ where
                     }
                 }
             }
-            FieldDef::FixedBytes(x) => {
+            Def::FixedBytes(x) => {
                 if let Some(y) = values.get(self.name()) {
                     match y {
-                        FieldValue::Bytes(y) => {
+                        Val::Bytes(y) => {
                             if y != x {
                                 return Err(Error::InvalidValue(self.name().clone()));
                             }
@@ -121,12 +117,12 @@ where
     pub fn to_value<'buf>(
         &self,
         b: &mut Octets<'buf>,
-        values: &mut HashMap<F, FieldValueInfo<'buf>>,
+        values: &mut HashMap<F, ValInfo<'buf>>,
     ) -> Result<(), Error<F>> {
         let pos = b.off();
 
         match self.def() {
-            FieldDef::VarInt(x) => {
+            Def::VarInt(x) => {
                 match b.get_varint() {
                     Ok(y) => match x {
                         Some(x) => {
@@ -137,8 +133,8 @@ where
                         None => {
                             values.insert(
                                 self.name().clone(),
-                                FieldValueInfo {
-                                    value: FieldValue::VarInt(y),
+                                ValInfo {
+                                    value: Val::VarInt(y),
                                     pos,
                                 },
                             );
@@ -147,25 +143,25 @@ where
                     Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                 };
             }
-            FieldDef::Bytes(len) => match len {
-                FieldLen::Fixed(len) => {
+            Def::Bytes(len) => match len {
+                Len::Fixed(len) => {
                     let x = match b.get_bytes(*len) {
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = FieldValue::Bytes(Cow::from(x.buf()));
-                    values.insert(self.name().clone(), FieldValueInfo { value, pos });
+                    let value = Val::Bytes(Cow::from(x.buf()));
+                    values.insert(self.name().clone(), ValInfo { value, pos });
                 }
-                FieldLen::Var => {
+                Len::Var => {
                     let x = match b.get_bytes_with_varint_length() {
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = FieldValue::Bytes(Cow::from(x.buf()));
-                    values.insert(self.name().clone(), FieldValueInfo { value, pos });
+                    let value = Val::Bytes(Cow::from(x.buf()));
+                    values.insert(self.name().clone(), ValInfo { value, pos });
                 }
             },
-            FieldDef::FixedBytes(x) => {
+            Def::FixedBytes(x) => {
                 let y = match b.get_bytes(x.len()) {
                     Ok(y) => y,
                     Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
@@ -179,13 +175,13 @@ where
     }
 }
 
-pub enum FieldDef {
+pub enum Def {
     VarInt(Option<u64>),
-    Bytes(FieldLen),
+    Bytes(Len),
     FixedBytes(Vec<u8>),
 }
 
-pub enum FieldLen {
+pub enum Len {
     Fixed(usize),
     Var,
 }

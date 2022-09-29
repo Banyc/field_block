@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use octets::{Octets, OctetsMut};
 
-use crate::{Error, Field, FieldDef, FieldName, FieldValue, FieldValueInfo};
+use crate::{Def, Error, Field, FieldName, Val, ValInfo};
 
 pub struct Block<F>
 where
@@ -24,25 +24,17 @@ where
         self_
     }
 
-    pub fn add_field(&mut self, name: F, field_def: FieldDef) {
-        self.fields.push(Field::new(name, field_def));
+    pub fn add_field(&mut self, name: F, def: Def) {
+        self.fields.push(Field::new(name, def));
         self.check_rep();
     }
 
-    pub fn to_bytes(
-        &self,
-        values: &HashMap<F, FieldValue>,
-        b: &mut [u8],
-    ) -> Result<usize, Error<F>> {
+    pub fn to_bytes(&self, values: &HashMap<F, Val>, b: &mut [u8]) -> Result<usize, Error<F>> {
         let mut b = OctetsMut::with_slice(b);
         return self.to_bytes_(values, &mut b);
     }
 
-    fn to_bytes_(
-        &self,
-        values: &HashMap<F, FieldValue>,
-        b: &mut OctetsMut,
-    ) -> Result<usize, Error<F>> {
+    fn to_bytes_(&self, values: &HashMap<F, Val>, b: &mut OctetsMut) -> Result<usize, Error<F>> {
         for field in self.fields.iter() {
             field.to_bytes(values, b)?;
         }
@@ -52,7 +44,7 @@ where
     pub fn to_values<'buf>(
         &self,
         b: &'buf [u8],
-        values: &mut HashMap<F, FieldValueInfo<'buf>>,
+        values: &mut HashMap<F, ValInfo<'buf>>,
     ) -> Result<usize, Error<F>> {
         let mut b = Octets::with_slice(b);
         return self.to_values_(&mut b, values);
@@ -61,7 +53,7 @@ where
     fn to_values_<'buf>(
         &self,
         b: &mut Octets<'buf>,
-        values: &mut HashMap<F, FieldValueInfo<'buf>>,
+        values: &mut HashMap<F, ValInfo<'buf>>,
     ) -> Result<usize, Error<F>> {
         for field in self.fields.iter() {
             field.to_value(b, values)?;
