@@ -49,19 +49,19 @@ where
         Ok(b.off())
     }
 
-    pub fn to_values(
+    pub fn to_values<'buf>(
         &self,
-        b: &[u8],
-        values: &mut HashMap<F, FieldValueInfo>,
+        b: &'buf [u8],
+        values: &mut HashMap<F, FieldValueInfo<'buf>>,
     ) -> Result<usize, Error<F>> {
         let mut b = Octets::with_slice(b);
         return self.to_values_(&mut b, values);
     }
 
-    fn to_values_(
+    fn to_values_<'buf>(
         &self,
-        b: &mut Octets,
-        values: &mut HashMap<F, FieldValueInfo>,
+        b: &mut Octets<'buf>,
+        values: &mut HashMap<F, FieldValueInfo<'buf>>,
     ) -> Result<usize, Error<F>> {
         for field in self.fields.iter() {
             field.to_value(b, values)?;

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use octets::{Octets, OctetsMut};
 
@@ -118,10 +118,10 @@ where
         Ok(())
     }
 
-    pub fn to_value(
+    pub fn to_value<'buf>(
         &self,
-        b: &mut Octets,
-        values: &mut HashMap<F, FieldValueInfo>,
+        b: &mut Octets<'buf>,
+        values: &mut HashMap<F, FieldValueInfo<'buf>>,
     ) -> Result<(), Error<F>> {
         let pos = b.off();
 
@@ -153,7 +153,7 @@ where
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = FieldValue::Bytes(x.to_vec());
+                    let value = FieldValue::Bytes(Cow::from(x.buf()));
                     values.insert(self.name().clone(), FieldValueInfo { value, pos });
                 }
                 FieldLen::Var => {
@@ -161,7 +161,7 @@ where
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = FieldValue::Bytes(x.to_vec());
+                    let value = FieldValue::Bytes(Cow::from(x.buf()));
                     values.insert(self.name().clone(), FieldValueInfo { value, pos });
                 }
             },

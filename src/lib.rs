@@ -23,7 +23,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{borrow::Cow, collections::HashMap};
 
     use super::*;
 
@@ -33,8 +33,11 @@ mod tests {
 
         let mut values = HashMap::new();
         values.insert(Name::VarInt, FieldValue::VarInt(0x1234));
-        values.insert(Name::BytesFixedLen, FieldValue::Bytes(vec![1]));
-        values.insert(Name::BytesVarLen, FieldValue::Bytes(vec![1, 2, 3]));
+        values.insert(Name::BytesFixedLen, FieldValue::Bytes(Cow::from(vec![1])));
+        values.insert(
+            Name::BytesVarLen,
+            FieldValue::Bytes(Cow::from(vec![1, 2, 3])),
+        );
 
         let mut vec = vec![0; 1024];
 

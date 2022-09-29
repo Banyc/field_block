@@ -1,10 +1,12 @@
+use std::borrow::Cow;
+
 #[derive(Debug)]
-pub enum FieldValue {
+pub enum FieldValue<'buf> {
     VarInt(u64),
-    Bytes(Vec<u8>),
+    Bytes(Cow<'buf, [u8]>),
 }
 
-impl FieldValue {
+impl<'buf> FieldValue<'buf> {
     pub fn varint(&self) -> Result<u64, Error> {
         match self {
             FieldValue::VarInt(x) => Ok(*x),
@@ -19,7 +21,7 @@ impl FieldValue {
         }
     }
 
-    pub fn into_bytes(self) -> Result<Vec<u8>, Error> {
+    pub fn into_bytes(self) -> Result<Cow<'buf, [u8]>, Error> {
         match self {
             FieldValue::Bytes(x) => Ok(x),
             _ => Err(Error::InvalidType),
@@ -33,7 +35,7 @@ pub enum Error {
 }
 
 #[derive(Debug)]
-pub struct FieldValueInfo {
-    pub value: FieldValue,
+pub struct FieldValueInfo<'buf> {
+    pub value: FieldValue<'buf>,
     pub pos: usize,
 }
