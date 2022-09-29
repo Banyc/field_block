@@ -16,14 +16,17 @@ impl<F> Field<F>
 where
     F: FieldName,
 {
+    #[must_use]
     pub fn new(name: F, def: Def) -> Self {
         Field { name, def }
     }
 
+    #[must_use]
     pub fn name(&self) -> &F {
         &self.name
     }
 
+    #[must_use]
     pub fn def(&self) -> &Def {
         &self.def
     }
