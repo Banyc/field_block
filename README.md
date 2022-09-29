@@ -52,10 +52,12 @@ let block = get_block();
 let mut values = HashMap::new();
 values.insert(
     Name::VarInt, //
-    FieldValue::VarInt(0x1234));
+    FieldValue::VarInt(0x1234)
+);
 values.insert(
     Name::BytesFixedLen, //
-    FieldValue::Bytes(Cow::from(vec![1])));
+    FieldValue::Bytes(Cow::from(vec![1]))
+);
 values.insert(
     Name::BytesVarLen, //
     FieldValue::Bytes(Cow::from(vec![1, 2, 3])),
