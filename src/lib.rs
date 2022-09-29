@@ -37,6 +37,7 @@ mod tests {
         values.insert(TestName::BytesVarLen, FieldValue::Bytes(vec![1, 2, 3]));
 
         let mut vec = vec![0; 1024];
+
         let end = block.to_bytes(&values, &mut vec).unwrap();
 
         assert_eq!(end, 19);
@@ -104,6 +105,7 @@ mod tests {
         ];
 
         let mut values = HashMap::new();
+
         let end = block.to_values(&vec, &mut values).unwrap();
 
         assert_eq!(end, vec.len());
