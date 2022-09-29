@@ -118,7 +118,7 @@ where
         Ok(())
     }
 
-    pub fn to_values(
+    pub fn to_value(
         &self,
         b: &mut Octets,
         values: &mut HashMap<F, FieldValueInfo>,

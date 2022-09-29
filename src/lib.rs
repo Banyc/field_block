@@ -37,10 +37,12 @@ mod tests {
         values.insert(TestName::BytesVarLen, FieldValue::Bytes(vec![1, 2, 3]));
 
         let mut vec = vec![0; 1024];
-        block.to_bytes(&values, &mut vec).unwrap();
+        let end = block.to_bytes(&values, &mut vec).unwrap();
+
+        assert_eq!(end, 19);
 
         assert_eq!(
-            &vec[..19],
+            &vec[..end],
             &vec![
                 // fixed varint
                 0 | 0xc0,
@@ -102,7 +104,9 @@ mod tests {
         ];
 
         let mut values = HashMap::new();
-        block.to_values(&vec, &mut values).unwrap();
+        let end = block.to_values(&vec, &mut values).unwrap();
+
+        assert_eq!(end, vec.len());
 
         match values.get(&TestName::VarInt) {
             Some(FieldValueInfo {
