@@ -66,6 +66,11 @@ let vec = vec![0 | 0xc0, 0, 0, 0, 0xde, 0xad, 0xbe, 0xef, 0x12 | 0x40, 0x34, 1, 
 let mut values = HashMap::new();
 
 let end = block.to_values(&vec, &mut values).unwrap();
+
+let FieldValueInfo { value, pos } = values.get(&TestName::VarInt).unwrap();
+let value = value.varint().unwrap();
+
+println!("Field VarInt value {} at pos {}", value, pos);
 ```
 
 See unit tests for examples.
