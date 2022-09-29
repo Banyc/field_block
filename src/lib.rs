@@ -150,20 +150,20 @@ mod tests {
         let mut block = Block::new();
         block.add_field(Field::new(
             TestName::FixedVarInt,
-            FieldDefinition::VarInt(Some(0xdeadbeef)),
+            FieldDef::VarInt(Some(0xdeadbeef)),
         ));
-        block.add_field(Field::new(TestName::VarInt, FieldDefinition::VarInt(None)));
+        block.add_field(Field::new(TestName::VarInt, FieldDef::VarInt(None)));
         block.add_field(Field::new(
             TestName::BytesFixedLen,
-            FieldDefinition::Bytes(FieldLen::Fixed(1)),
+            FieldDef::Bytes(FieldLen::Fixed(1)),
         ));
         block.add_field(Field::new(
             TestName::BytesVarLen,
-            FieldDefinition::Bytes(FieldLen::Var),
+            FieldDef::Bytes(FieldLen::Var),
         ));
         block.add_field(Field::new(
             TestName::FixedBytes,
-            FieldDefinition::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
+            FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
         ));
         block
     }

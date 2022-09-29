@@ -9,23 +9,23 @@ where
     F: FieldName,
 {
     name: F,
-    definition: FieldDefinition,
+    def: FieldDef,
 }
 
 impl<F> Field<F>
 where
     F: FieldName,
 {
-    pub fn new(name: F, definition: FieldDefinition) -> Self {
-        Field { name, definition }
+    pub fn new(name: F, def: FieldDef) -> Self {
+        Field { name, def }
     }
 
     pub fn name(&self) -> &F {
         &self.name
     }
 
-    pub fn definition(&self) -> &FieldDefinition {
-        &self.definition
+    pub fn def(&self) -> &FieldDef {
+        &self.def
     }
 
     pub fn to_bytes(
@@ -33,8 +33,8 @@ where
         values: &HashMap<F, FieldValue>,
         b: &mut OctetsMut,
     ) -> Result<(), Error<F>> {
-        match self.definition() {
-            FieldDefinition::VarInt(x) => {
+        match self.def() {
+            FieldDef::VarInt(x) => {
                 let y = values.get(self.name());
                 match (x, y) {
                     (Some(x), Some(FieldValue::VarInt(y))) => {
@@ -63,7 +63,7 @@ where
                     }
                 };
             }
-            FieldDefinition::Bytes(len) => {
+            FieldDef::Bytes(len) => {
                 match len {
                     FieldLen::Fixed(len) => match values.get(self.name()) {
                         Some(FieldValue::Bytes(x)) => {
@@ -97,7 +97,7 @@ where
                     }
                 }
             }
-            FieldDefinition::FixedBytes(x) => {
+            FieldDef::FixedBytes(x) => {
                 if let Some(y) = values.get(self.name()) {
                     match y {
                         FieldValue::Bytes(y) => {
@@ -125,8 +125,8 @@ where
     ) -> Result<(), Error<F>> {
         let pos = b.off();
 
-        match self.definition() {
-            FieldDefinition::VarInt(x) => {
+        match self.def() {
+            FieldDef::VarInt(x) => {
                 match b.get_varint() {
                     Ok(y) => match x {
                         Some(x) => {
@@ -147,7 +147,7 @@ where
                     Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                 };
             }
-            FieldDefinition::Bytes(len) => match len {
+            FieldDef::Bytes(len) => match len {
                 FieldLen::Fixed(len) => {
                     let x = match b.get_bytes(*len) {
                         Ok(x) => x,
@@ -165,7 +165,7 @@ where
                     values.insert(self.name().clone(), FieldValueInfo { value, pos });
                 }
             },
-            FieldDefinition::FixedBytes(x) => {
+            FieldDef::FixedBytes(x) => {
                 let y = match b.get_bytes(x.len()) {
                     Ok(y) => y,
                     Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
@@ -179,7 +179,7 @@ where
     }
 }
 
-pub enum FieldDefinition {
+pub enum FieldDef {
     VarInt(Option<u64>),
     Bytes(FieldLen),
     FixedBytes(Vec<u8>),

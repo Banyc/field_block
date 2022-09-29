@@ -10,21 +10,19 @@ A buffer field definition:
 fn get_block() -> Block<Name> {
     let mut block = Block::new();
     block.add_field(Field::new(
-        Name::FixedVarInt,
-        FieldDefinition::VarInt(Some(0xdeadbeef)),
+        Name::FixedVarInt, FieldDef::VarInt(Some(0xdeadbeef)),
     ));
-    block.add_field(Field::new(Name::VarInt, FieldDefinition::VarInt(None)));
-    block.add_field(Field::new(
-        Name::BytesFixedLen,
-        FieldDefinition::Bytes(FieldLen::Fixed(1)),
+    block.add_field(Field::new( //
+        Name::VarInt, FieldDef::VarInt(None),
     ));
     block.add_field(Field::new(
-        Name::BytesVarLen,
-        FieldDefinition::Bytes(FieldLen::Var),
+        Name::BytesFixedLen, FieldDef::Bytes(FieldLen::Fixed(1)),
     ));
     block.add_field(Field::new(
-        Name::FixedBytes,
-        FieldDefinition::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
+        Name::BytesVarLen, FieldDef::Bytes(FieldLen::Var),
+    ));
+    block.add_field(Field::new(
+        Name::FixedBytes, FieldDef::FixedBytes(vec![0xba, 0xad, 0xf0, 0x0d]),
     ));
     block
 }
