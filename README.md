@@ -67,10 +67,10 @@ let mut values = HashMap::new();
 
 let end = block.to_values(&vec, &mut values).unwrap();
 
-let FieldValueInfo { value, pos } = values.get(&TestName::VarInt).unwrap();
+let FieldValueInfo { value, pos } = values.get(&Name::VarInt).unwrap();
 let value = value.varint().unwrap();
 
-println!("Field VarInt value {} at pos {}", value, pos);
+println!("Field VarInt is at pos {} with value {}", pos, value);
 ```
 
 See unit tests for examples.
