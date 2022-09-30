@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "A definition language for buffer parsing"
-homepage = "https://github.com/Banyc/field_block"
-documentation = "https://github.com/Banyc/field_block"
 repository = "https://github.com/Banyc/field_block"
 readme = "README.md"
 
