@@ -4,7 +4,7 @@ A definition language for buffer parsing.
 
 ## Usage
 
-A buffer field definition:
+Defining fields for a buffer:
 
 ```rust
 fn get_block() -> Block<Name> {
