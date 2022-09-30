@@ -125,8 +125,8 @@ mod tests {
 
     fn get_block() -> Block<Name> {
         let mut block = Block::new();
-        block.add_field(Name::FixedVarInt, Def::VarInt(Some(0xdeadbeef)));
-        block.add_field(Name::VarInt, Def::VarInt(None));
+        block.add_field(Name::FixedVarInt, Def::VarInt(U64::Fixed(0xdeadbeef)));
+        block.add_field(Name::VarInt, Def::VarInt(U64::Var));
         block.add_field(Name::BytesFixedLen, Def::Bytes(Len::Fixed(1)));
         block.add_field(Name::BytesVarLen, Def::Bytes(Len::Var));
         block.add_field(

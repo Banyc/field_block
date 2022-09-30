@@ -36,7 +36,7 @@ where
             Def::VarInt(x) => {
                 let y = values.get(self.name());
                 match (x, y) {
-                    (Some(x), Some(Val::VarInt(y))) => {
+                    (U64::Fixed(x), Some(Val::VarInt(y))) => {
                         if *y != *x {
                             return Err(Error::InvalidValue(self.name().clone()));
                         }
@@ -44,17 +44,17 @@ where
                             return Err(Error::NotEnoughSpace(self.name().clone()));
                         };
                     }
-                    (None, Some(Val::VarInt(y))) => {
+                    (U64::Var, Some(Val::VarInt(y))) => {
                         if let Err(_) = b.put_varint(*y) {
                             return Err(Error::NotEnoughSpace(self.name().clone()));
                         };
                     }
-                    (Some(x), None) => {
+                    (U64::Fixed(x), None) => {
                         if let Err(_) = b.put_varint(*x) {
                             return Err(Error::NotEnoughSpace(self.name().clone()));
                         };
                     }
-                    (None, None) => {
+                    (U64::Var, None) => {
                         return Err(Error::NoValueProvided(self.name().clone()));
                     }
                     (_, _) => {
@@ -126,24 +126,25 @@ where
 
         match self.def() {
             Def::VarInt(x) => {
-                match b.get_varint() {
-                    Ok(y) => match x {
-                        Some(x) => {
-                            if *x != y {
-                                return Err(Error::InvalidValue(self.name().clone()));
-                            }
-                        }
-                        None => {
-                            values.insert(
-                                self.name().clone(),
-                                ValInfo {
-                                    value: Val::VarInt(y),
-                                    pos,
-                                },
-                            );
-                        }
-                    },
+                let y = match b.get_varint() {
+                    Ok(y) => y,
                     Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
+                };
+                match x {
+                    U64::Fixed(x) => {
+                        if *x != y {
+                            return Err(Error::InvalidValue(self.name().clone()));
+                        }
+                    }
+                    U64::Var => {
+                        values.insert(
+                            self.name().clone(),
+                            ValInfo {
+                                value: Val::VarInt(y),
+                                pos,
+                            },
+                        );
+                    }
                 };
             }
             Def::Bytes(len) => match len {
@@ -179,9 +180,14 @@ where
 }
 
 pub enum Def {
-    VarInt(Option<u64>),
+    VarInt(U64),
     Bytes(Len),
     FixedBytes(Vec<u8>),
+}
+
+pub enum U64 {
+    Var,
+    Fixed(u64),
 }
 
 pub enum Len {
