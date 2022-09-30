@@ -207,7 +207,7 @@ mod tests {
             let mut buf = [0; 4];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                values.insert(Name::VarInt, Val::Bytes(Cow::from(vec![0x01])));
+                values.insert(Name::VarInt, Val::Bytes(Cow::from(vec![1])));
                 let e = field.to_bytes(&values, &mut b).unwrap_err();
                 assert_eq!(e, Error::InvalidValue(Name::VarInt));
             }
@@ -270,13 +270,125 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_bytes_fixed_len() {
+        let field = Field::new(Name::BytesFixedLen, Def::Bytes(Len::Fixed(3)));
+        {
+            let mut values = HashMap::new();
+            let mut buf = [0; 4];
+            let mut b = OctetsMut::with_slice(&mut buf);
+            {
+                values.insert(Name::BytesFixedLen, Val::Bytes(Cow::from(vec![1])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::InvalidValue(Name::BytesFixedLen));
+            }
+            {
+                values.remove(&Name::BytesFixedLen);
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NoValueProvided(Name::BytesFixedLen));
+            }
+            let mut buf = [0; 2];
+            let mut b = OctetsMut::with_slice(&mut buf);
+            {
+                values.insert(Name::BytesFixedLen, Val::Bytes(Cow::from(vec![1, 2, 3])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NotEnoughSpace(Name::BytesFixedLen));
+            }
+        }
+        {
+            let mut values = HashMap::new();
+            let mut buf = vec![0, 1];
+            let mut b = Octets::with_slice(&mut buf);
+            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            assert_eq!(e, Error::NotEnoughData(Name::BytesFixedLen));
+        }
+    }
+
+    #[test]
+    fn test_bytes_var_len() {
+        let field = Field::new(Name::BytesVarLen, Def::Bytes(Len::Var));
+        {
+            let mut values = HashMap::new();
+            let mut buf = [0; 2];
+            let mut b = OctetsMut::with_slice(&mut buf);
+            {
+                values.insert(Name::BytesVarLen, Val::Bytes(Cow::from(vec![1, 2, 3])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
+            }
+            {
+                values.insert(Name::BytesVarLen, Val::Bytes(Cow::from(vec![0; 1024])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
+            }
+            {
+                values.remove(&Name::BytesVarLen);
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NoValueProvided(Name::BytesVarLen));
+            }
+        }
+        {
+            let mut values = HashMap::new();
+            let mut buf = vec![2, 1];
+            let mut b = Octets::with_slice(&mut buf);
+            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            assert_eq!(e, Error::NotEnoughData(Name::BytesVarLen));
+        }
+    }
+
+    #[test]
+    fn test_fixed_bytes() {
+        let field = Field::new(Name::FixedBytes, Def::FixedBytes(vec![1, 2, 3]));
+        {
+            let mut values = HashMap::new();
+            let mut buf = [0; 4];
+            let mut b = OctetsMut::with_slice(&mut buf);
+            {
+                values.insert(Name::FixedBytes, Val::Bytes(Cow::from(vec![1, 2, 3, 4])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+            }
+            {
+                values.insert(Name::FixedBytes, Val::VarInt(1));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+            }
+            let mut buf = [0; 2];
+            let mut b = OctetsMut::with_slice(&mut buf);
+            {
+                values.insert(Name::FixedBytes, Val::Bytes(Cow::from(vec![1, 2, 3])));
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NotEnoughSpace(Name::FixedBytes));
+            }
+            {
+                values.remove(&Name::FixedBytes);
+                let e = field.to_bytes(&values, &mut b).unwrap_err();
+                assert_eq!(e, Error::NotEnoughSpace(Name::FixedBytes));
+            }
+        }
+        {
+            let mut values = HashMap::new();
+            let mut buf = vec![0, 1];
+            let mut b = Octets::with_slice(&mut buf);
+            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            assert_eq!(e, Error::NotEnoughData(Name::FixedBytes));
+        }
+        {
+            let mut values = HashMap::new();
+            let mut buf = vec![0, 2, 3];
+            let mut b = Octets::with_slice(&mut buf);
+            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+        }
+    }
+
     #[derive(Debug, PartialEq, Eq, Hash, Clone)]
     enum Name {
         FixedVarInt,
         VarInt,
-        // BytesFixedLen,
-        // BytesVarLen,
-        // FixedBytes,
+        BytesFixedLen,
+        BytesVarLen,
+        FixedBytes,
     }
 
     impl FieldName for Name {}
