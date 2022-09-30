@@ -1,6 +1,6 @@
 # Field Block
 
-A definition language for packet parsing.
+A definition language for buffer parsing.
 
 ## Usage
 
