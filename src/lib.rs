@@ -10,7 +10,7 @@ pub use value::*;
 
 pub trait FieldName: PartialEq + Eq + Hash + Clone + Sized {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error<F>
 where
     F: FieldName,
