@@ -4,6 +4,12 @@ A definition language for buffer parsing.
 
 ## Usage
 
+Adding this crate to a project:
+
+```bash
+cargo add field_block
+```
+
 Defining fields for a buffer:
 
 ```rust
