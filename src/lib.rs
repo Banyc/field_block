@@ -8,7 +8,7 @@ pub use block::*;
 pub use field::*;
 pub use value::*;
 
-pub trait FieldName: PartialEq + Eq + Hash + Clone + Sized {}
+pub trait FieldName: PartialEq + Eq + Hash + Clone {}
 
 #[derive(Debug, PartialEq)]
 pub enum Error<F>
