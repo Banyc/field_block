@@ -57,7 +57,8 @@ where
         values: &mut HashMap<F, ValInfo<'buf>>,
     ) -> Result<usize, Error<F>> {
         for field in self.fields.iter() {
-            field.to_value(b, values)?;
+            let value = field.to_value(b)?;
+            values.insert(field.name().clone(), value);
         }
         Ok(b.off())
     }

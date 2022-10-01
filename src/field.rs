@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
 use octets::{Octets, OctetsMut};
 
@@ -117,11 +117,7 @@ where
         Ok(())
     }
 
-    pub fn to_value<'buf>(
-        &self,
-        b: &mut Octets<'buf>,
-        values: &mut HashMap<F, ValInfo<'buf>>,
-    ) -> Result<(), Error<F>> {
+    pub fn to_value<'buf>(&self, b: &mut Octets<'buf>) -> Result<ValInfo<'buf>, Error<F>> {
         let pos = b.off();
 
         match self.def() {
@@ -135,15 +131,16 @@ where
                         if *x != y {
                             return Err(Error::InvalidValue(self.name().clone()));
                         }
+                        return Ok(ValInfo {
+                            value: Val::VarInt(y),
+                            pos,
+                        });
                     }
                     U64::Var => {
-                        values.insert(
-                            self.name().clone(),
-                            ValInfo {
-                                value: Val::VarInt(y),
-                                pos,
-                            },
-                        );
+                        return Ok(ValInfo {
+                            value: Val::VarInt(y),
+                            pos,
+                        });
                     }
                 };
             }
@@ -154,7 +151,7 @@ where
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
                     let value = Val::Bytes(Cow::from(x.buf()));
-                    values.insert(self.name().clone(), ValInfo { value, pos });
+                    return Ok(ValInfo { value, pos });
                 }
                 Len::Var => {
                     let x = match b.get_bytes_with_varint_length() {
@@ -162,7 +159,7 @@ where
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
                     let value = Val::Bytes(Cow::from(x.buf()));
-                    values.insert(self.name().clone(), ValInfo { value, pos });
+                    return Ok(ValInfo { value, pos });
                 }
             },
             Def::FixedBytes(x) => {
@@ -173,9 +170,12 @@ where
                 if y.buf() != x {
                     return Err(Error::InvalidValue(self.name().clone()));
                 }
+                return Ok(ValInfo {
+                    value: Val::Bytes(Cow::from(y.buf())),
+                    pos,
+                });
             }
         }
-        Ok(())
     }
 }
 
@@ -221,10 +221,9 @@ mod tests {
             }
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![0 | 0x80, 1];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::NotEnoughData(Name::VarInt));
         }
     }
@@ -258,10 +257,9 @@ mod tests {
             }
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![0, 2, 3, 4, 5];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::InvalidValue(Name::FixedVarInt));
         }
     }
@@ -290,10 +288,9 @@ mod tests {
             }
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![0, 1];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::NotEnoughData(Name::BytesFixedLen));
         }
     }
@@ -320,10 +317,9 @@ mod tests {
             }
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![2, 1];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::NotEnoughData(Name::BytesVarLen));
         }
     }
@@ -357,17 +353,15 @@ mod tests {
             }
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![0, 1];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::NotEnoughData(Name::FixedBytes));
         }
         {
-            let mut values = HashMap::new();
             let mut buf = vec![0, 2, 3];
             let mut b = Octets::with_slice(&mut buf);
-            let e = field.to_value(&mut b, &mut values).unwrap_err();
+            let e = field.to_value(&mut b).unwrap_err();
             assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
         }
     }
