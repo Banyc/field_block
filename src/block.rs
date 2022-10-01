@@ -36,7 +36,8 @@ where
 
     fn to_bytes_(&self, values: &HashMap<F, Val>, b: &mut OctetsMut) -> Result<usize, Error<F>> {
         for field in self.fields.iter() {
-            field.to_bytes(values, b)?;
+            let value = values.get(field.name());
+            field.to_bytes(value, b)?;
         }
         Ok(b.off())
     }
