@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use octets::{Octets, OctetsMut};
 
 use crate::{Error, FieldName, Val, ValInfo};
@@ -150,7 +148,7 @@ where
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = Val::Bytes(Cow::from(x.buf()));
+                    let value = Val::Bytes(x.buf());
                     return Ok(ValInfo { value, pos });
                 }
                 Len::Var => {
@@ -158,7 +156,7 @@ where
                         Ok(x) => x,
                         Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
                     };
-                    let value = Val::Bytes(Cow::from(x.buf()));
+                    let value = Val::Bytes(x.buf());
                     return Ok(ValInfo { value, pos });
                 }
             },
@@ -171,7 +169,7 @@ where
                     return Err(Error::InvalidValue(self.name().clone()));
                 }
                 return Ok(ValInfo {
-                    value: Val::Bytes(Cow::from(y.buf())),
+                    value: Val::Bytes(y.buf()),
                     pos,
                 });
             }
@@ -206,7 +204,8 @@ mod tests {
             let mut buf = [0; 4];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1]));
+                let vec = vec![1];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::InvalidValue(Name::VarInt));
             }
@@ -271,7 +270,8 @@ mod tests {
             let mut buf = [0; 4];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1]));
+                let vec = vec![1];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::InvalidValue(Name::BytesFixedLen));
             }
@@ -282,7 +282,8 @@ mod tests {
             let mut buf = [0; 2];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1, 2, 3]));
+                let vec = vec![1, 2, 3];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::NotEnoughSpace(Name::BytesFixedLen));
             }
@@ -302,12 +303,14 @@ mod tests {
             let mut buf = [0; 2];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1, 2, 3]));
+                let vec = vec![1, 2, 3];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
             }
             {
-                let value = Val::Bytes(Cow::from(vec![0; 1024]));
+                let vec = vec![0; 1024];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
             }
@@ -331,7 +334,8 @@ mod tests {
             let mut buf = [0; 4];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1, 2, 3, 4]));
+                let vec = vec![1, 2, 3, 4];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
             }
@@ -343,7 +347,8 @@ mod tests {
             let mut buf = [0; 2];
             let mut b = OctetsMut::with_slice(&mut buf);
             {
-                let value = Val::Bytes(Cow::from(vec![1, 2, 3]));
+                let vec = vec![1, 2, 3];
+                let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
                 assert_eq!(e, Error::NotEnoughSpace(Name::FixedBytes));
             }

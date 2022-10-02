@@ -56,18 +56,11 @@ Encoding a buffer:
 let block = get_block();
 
 let mut values = HashMap::new();
-values.insert(
-    Name::VarInt, //
-    Val::VarInt(0x1234)
-);
-values.insert(
-    Name::BytesFixedLen, //
-    Val::Bytes(Cow::from(vec![1]))
-);
-values.insert(
-    Name::BytesVarLen, //
-    Val::Bytes(Cow::from(vec![1, 2, 3])),
-);
+values.insert(Name::VarInt, Val::VarInt(0x1234));
+let vec = vec![1];
+values.insert(Name::BytesFixedLen, Val::Bytes(&vec));
+let vec = vec![1, 2, 3];
+values.insert(Name::BytesVarLen, Val::Bytes(&vec));
 
 let mut vec = vec![0; 1024];
 
