@@ -1,6 +1,6 @@
 use octets::{Octets, OctetsMut};
 
-use crate::{Error, FieldName, Val, ValInfo};
+use crate::{FieldName, ToBytesError, ToValuesError, Val, ValInfo};
 
 pub struct Field<F>
 where
@@ -29,34 +29,34 @@ where
         &self.def
     }
 
-    pub fn to_bytes(&self, value: Option<&Val>, b: &mut OctetsMut) -> Result<(), Error<F>> {
+    pub fn to_bytes(&self, value: Option<&Val>, b: &mut OctetsMut) -> Result<(), ToBytesError<F>> {
         match self.def() {
             Def::VarInt(x) => {
                 let y = value;
                 match (x, y) {
                     (U64::Fixed(x), Some(Val::VarInt(y))) => {
                         if *y != *x {
-                            return Err(Error::InvalidValue(self.name().clone()));
+                            return Err(ToBytesError::InvalidValue(self.name().clone()));
                         }
                         if let Err(_) = b.put_varint(*y) {
-                            return Err(Error::NotEnoughSpace(self.name().clone()));
+                            return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                         };
                     }
                     (U64::Var, Some(Val::VarInt(y))) => {
                         if let Err(_) = b.put_varint(*y) {
-                            return Err(Error::NotEnoughSpace(self.name().clone()));
+                            return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                         };
                     }
                     (U64::Fixed(x), None) => {
                         if let Err(_) = b.put_varint(*x) {
-                            return Err(Error::NotEnoughSpace(self.name().clone()));
+                            return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                         };
                     }
                     (U64::Var, None) => {
-                        return Err(Error::NoValueProvided(self.name().clone()));
+                        return Err(ToBytesError::NoValueProvided(self.name().clone()));
                     }
                     (_, _) => {
-                        return Err(Error::InvalidValue(self.name().clone()));
+                        return Err(ToBytesError::InvalidValue(self.name().clone()));
                     }
                 };
             }
@@ -65,14 +65,14 @@ where
                     Len::Fixed(len) => match value {
                         Some(Val::Bytes(x)) => {
                             if x.len() != *len {
-                                return Err(Error::InvalidValue(self.name().clone()));
+                                return Err(ToBytesError::InvalidValue(self.name().clone()));
                             }
                             if let Err(_) = b.put_bytes(x) {
-                                return Err(Error::NotEnoughSpace(self.name().clone()));
+                                return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                             };
                         }
                         _ => {
-                            return Err(Error::NoValueProvided(self.name().clone()));
+                            return Err(ToBytesError::NoValueProvided(self.name().clone()));
                         }
                     },
                     Len::Var => {
@@ -80,15 +80,15 @@ where
                             Some(Val::Bytes(x)) => {
                                 // length prefix
                                 if let Err(_) = b.put_varint(x.len() as u64) {
-                                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                                    return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                                 };
                                 // data
                                 if let Err(_) = b.put_bytes(x) {
-                                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                                    return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                                 };
                             }
                             _ => {
-                                return Err(Error::NoValueProvided(self.name().clone()));
+                                return Err(ToBytesError::NoValueProvided(self.name().clone()));
                             }
                         }
                     }
@@ -99,35 +99,35 @@ where
                     match y {
                         Val::Bytes(y) => {
                             if y != x {
-                                return Err(Error::InvalidValue(self.name().clone()));
+                                return Err(ToBytesError::InvalidValue(self.name().clone()));
                             }
                         }
                         _ => {
-                            return Err(Error::InvalidValue(self.name().clone()));
+                            return Err(ToBytesError::InvalidValue(self.name().clone()));
                         }
                     }
                 }
                 if let Err(_) = b.put_bytes(x) {
-                    return Err(Error::NotEnoughSpace(self.name().clone()));
+                    return Err(ToBytesError::NotEnoughSpace(self.name().clone()));
                 };
             }
         }
         Ok(())
     }
 
-    pub fn to_value<'buf>(&self, b: &mut Octets<'buf>) -> Result<ValInfo<'buf>, Error<F>> {
+    pub fn to_value<'buf>(&self, b: &mut Octets<'buf>) -> Result<ValInfo<'buf>, ToValuesError<F>> {
         let pos = b.off();
 
         match self.def() {
             Def::VarInt(x) => {
                 let y = match b.get_varint() {
                     Ok(y) => y,
-                    Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
+                    Err(_) => return Err(ToValuesError::NotEnoughData(self.name().clone())),
                 };
                 match x {
                     U64::Fixed(x) => {
                         if *x != y {
-                            return Err(Error::InvalidValue(self.name().clone()));
+                            return Err(ToValuesError::InvalidValue(self.name().clone()));
                         }
                         return Ok(ValInfo {
                             value: Val::VarInt(y),
@@ -146,7 +146,7 @@ where
                 Len::Fixed(len) => {
                     let x = match b.get_bytes(*len) {
                         Ok(x) => x,
-                        Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
+                        Err(_) => return Err(ToValuesError::NotEnoughData(self.name().clone())),
                     };
                     let value = Val::Bytes(x.buf());
                     return Ok(ValInfo { value, pos });
@@ -154,7 +154,7 @@ where
                 Len::Var => {
                     let x = match b.get_bytes_with_varint_length() {
                         Ok(x) => x,
-                        Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
+                        Err(_) => return Err(ToValuesError::NotEnoughData(self.name().clone())),
                     };
                     let value = Val::Bytes(x.buf());
                     return Ok(ValInfo { value, pos });
@@ -163,10 +163,10 @@ where
             Def::FixedBytes(x) => {
                 let y = match b.get_bytes(x.len()) {
                     Ok(y) => y,
-                    Err(_) => return Err(Error::NotEnoughData(self.name().clone())),
+                    Err(_) => return Err(ToValuesError::NotEnoughData(self.name().clone())),
                 };
                 if y.buf() != x {
-                    return Err(Error::InvalidValue(self.name().clone()));
+                    return Err(ToValuesError::InvalidValue(self.name().clone()));
                 }
                 return Ok(ValInfo {
                     value: Val::Bytes(y.buf()),
@@ -207,23 +207,23 @@ mod tests {
                 let vec = vec![1];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::InvalidValue(Name::VarInt));
+                assert_eq!(e, ToBytesError::InvalidValue(Name::VarInt));
             }
             {
                 let value = Val::VarInt(0x0102030405);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::VarInt));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::VarInt));
             }
             {
                 let e = field.to_bytes(None, &mut b).unwrap_err();
-                assert_eq!(e, Error::NoValueProvided(Name::VarInt));
+                assert_eq!(e, ToBytesError::NoValueProvided(Name::VarInt));
             }
         }
         {
             let mut buf = vec![0 | 0x80, 1];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::NotEnoughData(Name::VarInt));
+            assert_eq!(e, ToValuesError::NotEnoughData(Name::VarInt));
         }
     }
 
@@ -235,12 +235,12 @@ mod tests {
             let mut b = OctetsMut::with_slice(&mut buf);
             {
                 let e = field.to_bytes(None, &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::FixedVarInt));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::FixedVarInt));
             }
             {
                 let value = Val::VarInt(0x0102030405);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::FixedVarInt));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::FixedVarInt));
             }
             let mut buf = [0; 8];
             let mut b = OctetsMut::with_slice(&mut buf);
@@ -252,14 +252,14 @@ mod tests {
             {
                 let value = Val::VarInt(0x0002030405);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::InvalidValue(Name::FixedVarInt));
+                assert_eq!(e, ToBytesError::InvalidValue(Name::FixedVarInt));
             }
         }
         {
             let mut buf = vec![0, 2, 3, 4, 5];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::InvalidValue(Name::FixedVarInt));
+            assert_eq!(e, ToValuesError::InvalidValue(Name::FixedVarInt));
         }
     }
 
@@ -273,11 +273,11 @@ mod tests {
                 let vec = vec![1];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::InvalidValue(Name::BytesFixedLen));
+                assert_eq!(e, ToBytesError::InvalidValue(Name::BytesFixedLen));
             }
             {
                 let e = field.to_bytes(None, &mut b).unwrap_err();
-                assert_eq!(e, Error::NoValueProvided(Name::BytesFixedLen));
+                assert_eq!(e, ToBytesError::NoValueProvided(Name::BytesFixedLen));
             }
             let mut buf = [0; 2];
             let mut b = OctetsMut::with_slice(&mut buf);
@@ -285,14 +285,14 @@ mod tests {
                 let vec = vec![1, 2, 3];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::BytesFixedLen));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::BytesFixedLen));
             }
         }
         {
             let mut buf = vec![0, 1];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::NotEnoughData(Name::BytesFixedLen));
+            assert_eq!(e, ToValuesError::NotEnoughData(Name::BytesFixedLen));
         }
     }
 
@@ -306,24 +306,24 @@ mod tests {
                 let vec = vec![1, 2, 3];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::BytesVarLen));
             }
             {
                 let vec = vec![0; 1024];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::BytesVarLen));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::BytesVarLen));
             }
             {
                 let e = field.to_bytes(None, &mut b).unwrap_err();
-                assert_eq!(e, Error::NoValueProvided(Name::BytesVarLen));
+                assert_eq!(e, ToBytesError::NoValueProvided(Name::BytesVarLen));
             }
         }
         {
             let mut buf = vec![2, 1];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::NotEnoughData(Name::BytesVarLen));
+            assert_eq!(e, ToValuesError::NotEnoughData(Name::BytesVarLen));
         }
     }
 
@@ -337,12 +337,12 @@ mod tests {
                 let vec = vec![1, 2, 3, 4];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+                assert_eq!(e, ToBytesError::InvalidValue(Name::FixedBytes));
             }
             {
                 let value = Val::VarInt(1);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+                assert_eq!(e, ToBytesError::InvalidValue(Name::FixedBytes));
             }
             let mut buf = [0; 2];
             let mut b = OctetsMut::with_slice(&mut buf);
@@ -350,24 +350,24 @@ mod tests {
                 let vec = vec![1, 2, 3];
                 let value = Val::Bytes(&vec);
                 let e = field.to_bytes(Some(&value), &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::FixedBytes));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::FixedBytes));
             }
             {
                 let e = field.to_bytes(None, &mut b).unwrap_err();
-                assert_eq!(e, Error::NotEnoughSpace(Name::FixedBytes));
+                assert_eq!(e, ToBytesError::NotEnoughSpace(Name::FixedBytes));
             }
         }
         {
             let mut buf = vec![0, 1];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::NotEnoughData(Name::FixedBytes));
+            assert_eq!(e, ToValuesError::NotEnoughData(Name::FixedBytes));
         }
         {
             let mut buf = vec![0, 2, 3];
             let mut b = Octets::with_slice(&mut buf);
             let e = field.to_value(&mut b).unwrap_err();
-            assert_eq!(e, Error::InvalidValue(Name::FixedBytes));
+            assert_eq!(e, ToValuesError::InvalidValue(Name::FixedBytes));
         }
     }
 

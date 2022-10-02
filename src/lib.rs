@@ -11,13 +11,21 @@ pub use value::*;
 pub trait FieldName: PartialEq + Eq + Hash + Clone {}
 
 #[derive(Debug, PartialEq)]
-pub enum Error<F>
+pub enum ToBytesError<F>
 where
     F: FieldName,
 {
     NoValueProvided(F),
     InvalidValue(F),
     NotEnoughSpace(F),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ToValuesError<F>
+where
+    F: FieldName,
+{
+    InvalidValue(F),
     NotEnoughData(F),
 }
 
